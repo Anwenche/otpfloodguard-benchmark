@@ -943,6 +943,7 @@ def write_sanity_checks(df: pd.DataFrame, feature_cols: list[str]) -> None:
         "avg_interarrival_ms",
     ]
     corr = df[corr_features].corr()
+    corr.index.name = "feature"
     corr.to_csv(RESULTS_DIR / "feature_correlation.csv")
     plt.figure(figsize=(6.4, 5.2))
     im = plt.imshow(corr, cmap="coolwarm", vmin=-1, vmax=1)
