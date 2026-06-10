@@ -1,0 +1,21 @@
+feature,definition,min,max,mean,std
+window_seconds,Aggregation window length in seconds.,60.0,60.0,60.0,0.0
+otp_requests,Number of OTP requests observed in the window.,1.0,89.0,23.834666666666667,22.349484479742813
+request_velocity_per_sec,OTP request count divided by the window length.,0.016666666666666666,1.4833333333333334,0.3972444444444444,0.3724914079957135
+unique_phone_count,Number of distinct destination phone numbers in the window.,1.0,83.0,18.990666666666666,17.590798709519287
+unique_ip_count,Number of distinct source IP addresses in the window.,1.0,32.0,5.324166666666667,4.587683134430063
+unique_device_count,Number of distinct device identifiers in the window.,1.0,33.0,7.099583333333333,5.656426972058398
+ip_phone_ratio,Unique IP count divided by unique phone count.,0.013888888888888888,2.0,0.49056831390396777,0.3394106998086798
+device_phone_ratio,Unique device count divided by unique phone count.,0.017543859649122806,3.0,0.6111335062883118,0.3663103132106097
+prefix_concentration,Share of requests concentrated in the most common phone prefix bucket.,0.05,0.98,0.35945386105030447,0.20839029548356267
+sequential_phone_score,Normalized score indicating sequential or near-sequential phone-number patterns.,0.0,1.0,0.18653932889473232,0.21298783938068627
+country_entropy,Normalized entropy of destination-country distribution.,0.0,1.0,0.3938621429111222,0.22546309466671655
+carrier_entropy,Normalized entropy of carrier or network distribution.,0.0,1.0,0.45137895585411814,0.23908146059929172
+success_rate,Share of OTP requests that lead to successful verification.,0.0,1.0,0.4372439436310466,0.3189910305145004
+failure_rate,Share of OTP requests that fail verification.,0.0,1.0,0.5627560563689533,0.3189910305145004
+avg_interarrival_ms,Average time between consecutive OTP requests in milliseconds.,80.0,18079.377725257575,5039.452076210344,4316.18513642899
+new_account_ratio,Share of requests associated with newly created or first-seen accounts.,0.0,1.0,0.5335415545055474,0.2763798042618404
+night_request_ratio,Share of requests occurring during local night-time hours.,0.0,1.0,0.31434517525849986,0.22894029371822372
+repeat_phone_ratio,Share of repeated destination phone numbers in the window.,0.0,0.7692307692307692,0.16452423919596756,0.1624466232025466
+repeat_ip_ratio,Share of repeated source IP addresses in the window.,0.0,0.9876543209876543,0.5945652643413383,0.2757148494033343
+risk_country_ratio,Share of requests routed to destinations marked as higher risk.,0.0,1.0,0.2131984473606336,0.1971234113447385
