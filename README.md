@@ -26,7 +26,14 @@ pip install -r requirements.txt
 python3 src/run_otpfloodguard_experiment.py --quick
 ```
 
-This creates a fast seed-42 smoke-test output in `results/quick_metrics.csv`.
+This creates a fast seed-42 quick-verification output in `results/quick_metrics.csv`.
+
+## Model configuration
+
+- Random Forest: `n_estimators=250`, `max_depth=10`, `min_samples_leaf=3`, `class_weight=None`.
+- Logistic Regression: `StandardScaler` fitted on the training split plus `LogisticRegression(max_iter=1000)` with default L2 regularization.
+- Gradient Boosting: scikit-learn `GradientBoostingClassifier` default settings with the fixed random seed.
+- Tuned rule baseline: request, failure-rate, prefix-concentration, and repeat-IP thresholds selected on the training split only.
 
 ## Reproduce the paper results
 

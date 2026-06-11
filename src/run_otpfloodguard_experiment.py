@@ -1051,7 +1051,7 @@ def write_sanity_checks(df: pd.DataFrame, feature_cols: list[str]) -> None:
         zorder=4,
     )
     rounded_box(0.315, 0.61, 0.145, 0.14, "Threat Model", "A1 flooder\nA2 pumping\nA3 adaptive", fc="#FFFFFF", title_fs=9.0, body_fs=7.15)
-    rounded_box(0.500, 0.61, 0.145, 0.14, "Feature Map", "20 window features\nbehavioral signals\nreuse + concentration", fc="#FFFFFF", title_fs=9.0, body_fs=7.15)
+    rounded_box(0.500, 0.61, 0.145, 0.14, "Feature Map", "20 behavioral\nfeatures", fc="#FFFFFF", title_fs=9.0, body_fs=7.4)
     rounded_box(0.315, 0.36, 0.145, 0.14, "Generator", "normal bursts\nflooding / pumping\nsequential spray", fc="#FFFFFF", title_fs=9.0, body_fs=7.15)
     rounded_box(0.500, 0.36, 0.145, 0.14, "Controls", "difficulty regimes\nattack intensity\ngenerator shift", fc="#FFFFFF", title_fs=9.0, body_fs=7.15)
     rounded_box(0.405, 0.20, 0.150, 0.105, "Replaceability", "replace with\naggregate logs", fc="#FFFFFF", title_fs=8.9, body_fs=7.1)
