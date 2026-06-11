@@ -16,6 +16,8 @@ Authors: Wenche An and Kamran Aziz
   CSV files used for the paper tables and reported metrics.
 - `figures/`  
   Figures used in the paper.
+- `OTPFloodGuard_review_draft.pdf`  
+  Formatted review PDF corresponding to the current repository contents.
 
 ## Run a quick check
 
@@ -42,7 +44,7 @@ This creates a fast seed-42 quick-verification output in `results/quick_metrics.
 
 The primary experiment uses a stratified 80/20 train-test split. Model fitting, feature ranking, scaling, rule-threshold selection, and cost-sensitive threshold selection use only the training portion. The held-out test set is used once for final evaluation.
 
-Generator-seed sensitivity regenerates the Overlap benchmark with generator seeds `11, 23, 42, 67, 101` while holding the split seed at `42`. It measures sensitivity to generator randomness and does not rerun full diagnostics.
+Generator-seed sensitivity evaluates five separately regenerated Overlap benchmark instances with generator seeds `11, 23, 42, 67, 101` while holding the split seed at `42`. It measures sensitivity to generator randomness and does not rerun full diagnostics.
 
 Generator-shift evaluation transforms the held-out test rows with a separately seeded, label-preserving feature generator. Models, fitted scalers, selected features, model-score thresholds, and rule thresholds are not refitted or retuned on the shifted set.
 
@@ -63,7 +65,7 @@ The full run may take several minutes because it includes multi-split evaluation
 - `results/metrics.csv` -- main Overlap benchmark results
 - `results/benchmark_config.json` -- dataset size, class balance, and controlled-prevalence interpretation
 - `results/multi_split_summary.csv` -- seven-split stability results
-- `results/generator_seed_metrics.csv` -- per-generator-seed model results for five regenerated Overlap benchmarks
+- `results/generator_seed_metrics.csv` -- per-generator-seed model results for five separately regenerated Overlap benchmarks
 - `results/generator_seed_summary.csv` -- mean and standard deviation across generator seeds
 - `results/generator_seed_config.json` -- generator-seed sensitivity protocol
 - `results/cross_generator_metrics.csv` -- generator-shift robustness results
