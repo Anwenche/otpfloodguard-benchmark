@@ -4,6 +4,8 @@ This repository contains the code and generated files used for the paper:
 
 **OTPFloodGuard: A Public-Evidence-Constrained Benchmark for Lightweight OTP Flooding Detection**
 
+Authors: Wenche An and Kamran Aziz
+
 ## What is included
 
 - `src/run_otpfloodguard_experiment.py`  
