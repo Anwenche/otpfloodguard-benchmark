@@ -32,8 +32,19 @@ This creates a fast seed-42 quick-verification output in `results/quick_metrics.
 
 - Random Forest: `n_estimators=250`, `max_depth=10`, `min_samples_leaf=3`, `class_weight=None`.
 - Logistic Regression: `StandardScaler` fitted on the training split plus `LogisticRegression(max_iter=1000)` with default L2 regularization.
-- Gradient Boosting: scikit-learn `GradientBoostingClassifier` default settings with the fixed random seed.
-- Tuned rule baseline: request, failure-rate, prefix-concentration, and repeat-IP thresholds selected on the training split only.
+- Gradient Boosting: full parameters are exported in `results/model_config.json` from scikit-learn `get_params()`.
+- Tuned rule baseline: request, failure-rate, prefix-concentration, and repeat-IP thresholds selected by five-fold stratified cross-validation inside the training split only.
+- Cost-sensitive thresholds: selected from five-fold training out-of-fold predictions, then evaluated once on the held-out test set.
+- Top-k feature subsets: selected with Random Forest impurity-based feature importance computed from the training portion only. Cross-validated permutation importance is exported separately for interpretation and is not used for Top-k feature selection.
+- Model scores: used as empirical decision scores for thresholds, not as calibrated attack probabilities.
+
+## Evaluation boundary
+
+The primary experiment uses a stratified 80/20 train-test split. Model fitting, feature ranking, scaling, rule-threshold selection, and cost-sensitive threshold selection use only the training portion. The held-out test set is used once for final evaluation.
+
+Generator-seed sensitivity regenerates the Overlap benchmark with generator seeds `11, 23, 42, 67, 101` while holding the split seed at `42`. It measures sensitivity to generator randomness and does not rerun full diagnostics.
+
+Generator-shift evaluation transforms the held-out test rows with a separately seeded, label-preserving feature generator. Models, fitted scalers, selected features, model-score thresholds, and rule thresholds are not refitted or retuned on the shifted set.
 
 ## Reproduce the paper results
 
@@ -43,22 +54,37 @@ To regenerate the full simulated benchmark results:
 python3 src/run_otpfloodguard_experiment.py
 ```
 
-This writes the simulated dataset, result CSV files, and figures to `data/`, `results/`, and `figures/`.
+This writes the simulated dataset, result CSV files, metadata JSON files, and figures to `data/`, `results/`, and `figures/`.
 
-The full run may take several minutes because it includes multi-seed evaluation, generator-shift testing, attack-intensity analysis, feature-group ablation, threshold analysis, and diagnostic figures.
+The full run may take several minutes because it includes multi-split evaluation, generator-seed sensitivity, training-only rule selection, generator-shift testing, attack-intensity analysis, feature-group ablation, threshold analysis, base-rate sensitivity analysis, deterministic error-case selection, training-fold permutation importance, and diagnostic figures.
 
 ## Result files
 
 - `results/metrics.csv` -- main Overlap benchmark results
-- `results/multi_seed_summary.csv` -- seven-seed stability results
+- `results/benchmark_config.json` -- dataset size, class balance, and controlled-prevalence interpretation
+- `results/multi_split_summary.csv` -- seven-split stability results
+- `results/generator_seed_metrics.csv` -- per-generator-seed model results for five regenerated Overlap benchmarks
+- `results/generator_seed_summary.csv` -- mean and standard deviation across generator seeds
+- `results/generator_seed_config.json` -- generator-seed sensitivity protocol
 - `results/cross_generator_metrics.csv` -- generator-shift robustness results
 - `results/difficulty_metrics.csv` -- Easy, Overlap, and Adaptive results
 - `results/attack_intensity_metrics.csv` -- attack-intensity stress-test results
 - `results/ablation_metrics.csv` -- feature-group ablation results
-- `results/cost_sensitive_thresholds.csv` -- threshold results under relative FN/FP costs
+- `results/cost_sensitive_thresholds.csv` -- held-out threshold results under relative FN/FP costs
+- `results/prevalence_sensitivity.csv` -- prior-adjusted precision projections under alternative assumed attack prevalences
+- `results/threshold_selection_oof.csv` -- training out-of-fold threshold-selection diagnostics
 - `results/error_analysis_summary.csv` -- representative false-positive and false-negative patterns
+- `results/error_case_selection.json` -- deterministic representative-error-case selection method and selected row IDs
+- `results/representative_error_cases.csv` -- selected representative false-positive and false-negative cases
+- `results/feature_ranking_metadata.json` -- training-only Top-k ranking method and relation to permutation importance
+- `results/permutation_importance_cv.csv` -- permutation importance computed on validation folds within the training portion
+- `results/reporting_precision.json` -- manuscript decimal-place and rounding rule
 - `results/feature_dictionary.csv` -- feature definitions
 - `results/test_predictions.csv` -- seed-42 test predictions used for threshold and error analysis
+- `results/model_config.json` -- full estimator parameters exported from `get_params()`
+- `results/rule_config.json` -- rule logic, threshold grids, and selected rule parameters
+- `results/environment.json` -- Python and package versions
+- `results/generator_shift_metadata.json` -- generator-shift construction and no-retuning metadata
 
 ## Notes
 

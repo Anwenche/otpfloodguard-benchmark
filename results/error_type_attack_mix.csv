@@ -1,0 +1,9 @@
+error_type,attack_type,count
+FN,flooding,13
+FN,sms_pumping,7
+FN,sequential_spray,3
+FP,normal,55
+TN,normal,1342
+TP,flooding,433
+TP,sms_pumping,370
+TP,sequential_spray,177

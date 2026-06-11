@@ -1,0 +1,43 @@
+{
+  "ranking_method": "Random Forest impurity-based feature_importances_",
+  "ranking_estimator": {
+    "model": "RandomForestClassifier",
+    "n_estimators": 250,
+    "max_depth": 10,
+    "min_samples_leaf": 3,
+    "random_state": 42
+  },
+  "training_only": true,
+  "held_out_test_used": false,
+  "used_for_top_k_selection": true,
+  "top_k_sets": [
+    5,
+    10,
+    15
+  ],
+  "permutation_importance_used_for_selection": false,
+  "permutation_importance_role": "separate interpretability diagnostic computed on training-fold validation data",
+  "bias_note": "impurity-based importance is used as a ranking heuristic and may favor features with more split opportunities",
+  "ranked_features": [
+    "failure_rate",
+    "success_rate",
+    "request_velocity_per_sec",
+    "otp_requests",
+    "unique_phone_count",
+    "device_phone_ratio",
+    "risk_country_ratio",
+    "avg_interarrival_ms",
+    "repeat_ip_ratio",
+    "new_account_ratio",
+    "ip_phone_ratio",
+    "repeat_phone_ratio",
+    "unique_device_count",
+    "sequential_phone_score",
+    "carrier_entropy",
+    "prefix_concentration",
+    "unique_ip_count",
+    "country_entropy",
+    "night_request_ratio",
+    "window_seconds"
+  ]
+}

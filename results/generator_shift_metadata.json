@@ -1,0 +1,34 @@
+{
+  "source_dataset": "otpfloodguard_simulated_windows.csv",
+  "training_generator": "overlap_v1",
+  "training_generator_seed": 42,
+  "training_split_seed": 42,
+  "shifted_generator": "shifted_v2",
+  "shift_seed": 749,
+  "shifted_generator_seed": 749,
+  "shifted_test_size": 2400,
+  "class_counts": {
+    "0": 1397,
+    "1": 1003
+  },
+  "attack_subtype_counts": {
+    "flooding": 446,
+    "normal": 1397,
+    "sequential_spray": 180,
+    "sms_pumping": 377
+  },
+  "shifted_data_construction": "held-out test rows transformed under shifted feature generator",
+  "label_preserving_transformation": true,
+  "transformed_feature_groups": [
+    "benign burst ambiguity",
+    "attack request intensity",
+    "infrastructure reuse and distribution",
+    "timing and multiplicative feature noise"
+  ],
+  "training_rows_used_in_shifted_test": false,
+  "model_refit_on_shifted_data": false,
+  "scaler_refit_on_shifted_data": false,
+  "feature_reranking_on_shifted_data": false,
+  "threshold_retuning_on_shifted_data": false,
+  "rule_retuning_on_shifted_data": false
+}

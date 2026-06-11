@@ -1,0 +1,9 @@
+{
+  "mode": "quick",
+  "note": "Fast seed-42 quick verification; full paper tables require running without --quick.",
+  "samples": 12000,
+  "features": 20,
+  "best_model": "Random Forest",
+  "best_f1": 0.9617271835132483,
+  "output": "/Users/anwenchebd0419/Documents/New project 2/prai2026-paper/results/quick_metrics.csv"
+}

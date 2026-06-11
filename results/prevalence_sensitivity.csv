@@ -1,0 +1,6 @@
+model,assumed_attack_prevalence,tpr,fpr,adjusted_precision,source,deployment_estimate
+Random Forest,0.001,0.9770687936191426,0.03937007874015748,0.02424020512440975,mathematical projection from seed-42 held-out TPR and FPR,False
+Random Forest,0.01,0.9770687936191426,0.03937007874015748,0.2004364315680133,mathematical projection from seed-42 held-out TPR and FPR,False
+Random Forest,0.05,0.9770687936191426,0.03937007874015748,0.5663837629980205,mathematical projection from seed-42 held-out TPR and FPR,False
+Random Forest,0.1,0.9770687936191426,0.03937007874015748,0.7338659748223709,mathematical projection from seed-42 held-out TPR and FPR,False
+Random Forest,0.41783333333333333,0.9770687936191426,0.03937007874015748,0.9468426636435309,mathematical projection from seed-42 held-out TPR and FPR,False

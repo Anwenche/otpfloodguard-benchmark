@@ -1,0 +1,6 @@
+{
+  "reported_decimal_places": 4,
+  "mean_std_decimal_places": 4,
+  "rounding": "Python format specification .4f",
+  "note": "CSV files retain full floating-point precision; manuscript values are rounded to four decimals."
+}

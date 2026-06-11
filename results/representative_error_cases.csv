@@ -1,0 +1,3 @@
+case,row_id,attack_type,otp_requests,failure_rate,repeat_ip_ratio,prefix_concentration,success_rate,selection_distance
+False positive: Normal -> Attack,5316,normal,33,0.6819012828228673,0.8484848484848485,0.6364425231954712,0.3180987171771327,2.0078123917152775
+False negative: Attack -> Normal,1722,flooding,18,0.6292780538179357,0.7222222222222222,0.3017449747716313,0.37072194618206433,2.333995160728499

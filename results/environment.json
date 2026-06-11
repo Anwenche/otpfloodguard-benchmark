@@ -1,0 +1,9 @@
+{
+  "generated_at_utc": "2026-06-11T12:22:40+00:00",
+  "python": "3.9.6",
+  "operating_system": "macOS-15.7.4-arm64-arm-64bit",
+  "numpy": "2.0.2",
+  "pandas": "2.3.3",
+  "scikit_learn": "1.6.1",
+  "matplotlib": "3.9.4"
+}

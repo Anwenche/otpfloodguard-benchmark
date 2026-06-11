@@ -1,0 +1,7 @@
+{
+  "total_windows": 12000,
+  "normal_windows": 6986,
+  "attack_windows": 5014,
+  "attack_prevalence": 0.41783333333333333,
+  "interpretation": "controlled benchmark prevalence, not production base rate"
+}

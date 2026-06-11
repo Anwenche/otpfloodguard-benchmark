@@ -1,0 +1,7 @@
+{
+  "request_threshold": 10,
+  "failure_threshold": 0.7,
+  "cv_f1": 0.8893592272170613,
+  "selection_method": "five_fold_stratified_cv_on_training_split",
+  "rule_logic": "otp_requests >= request_threshold and failure_rate >= failure_threshold"
+}

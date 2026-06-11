@@ -1,0 +1,9 @@
+{
+  "request_threshold": 10,
+  "failure_threshold": 0.7,
+  "prefix_threshold": 0.65,
+  "repeat_ip_threshold": 0.45,
+  "cv_f1": 0.8888618126692286,
+  "selection_method": "five_fold_stratified_cv_on_training_split",
+  "rule_logic": "(otp_requests >= request_threshold and failure_rate >= failure_threshold) or (prefix_concentration >= prefix_threshold and repeat_ip_ratio >= repeat_ip_threshold)"
+}

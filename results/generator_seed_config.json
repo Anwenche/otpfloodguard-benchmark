@@ -1,0 +1,27 @@
+{
+  "generator_seeds": [
+    11,
+    23,
+    42,
+    67,
+    101
+  ],
+  "fixed_split_seed": 42,
+  "difficulty": "Overlap",
+  "models": [
+    "Random Forest",
+    "Gradient Boosting",
+    "Logistic Regression",
+    "Tuned Rule Baseline",
+    "Velocity + Failure Rule"
+  ],
+  "fixed_attack_type_counts": {
+    "flooding": 2187,
+    "normal": 6986,
+    "sequential_spray": 945,
+    "sms_pumping": 1882
+  },
+  "reruns_full_diagnostics": false,
+  "purpose": "measure sensitivity to generator randomness",
+  "selection_boundaries": "rules, scalers, models, and feature handling are fitted within each generated dataset training portion only"
+}
