@@ -19,6 +19,9 @@
   },
   "shifted_data_construction": "held-out test rows transformed under shifted feature generator",
   "label_preserving_transformation": true,
+  "uses_ground_truth_labels_for_shift_construction": true,
+  "labels_available_to_detector": false,
+  "interpretation": "controlled label-preserving stress test of simulation-assumption sensitivity, not an observed production distribution shift",
   "transformed_feature_groups": [
     "benign burst ambiguity",
     "attack request intensity",

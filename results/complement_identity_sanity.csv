@@ -1,0 +1,2 @@
+feature_pair,expected_sum,max_absolute_error,mean_absolute_error,passes_tolerance_1e_9,interpretation
+success_rate_plus_failure_rate,1.0,2.220446049250313e-16,2.061314082387374e-17,True,deterministic complement sanity check for generated outcome features

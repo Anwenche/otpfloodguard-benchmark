@@ -27,5 +27,5 @@
   "cross_generator_rf_recall": 0.8673978065802592,
   "top_permutation_feature": "risk_country_ratio",
   "prevalence_sensitivity_rows": 5,
-  "data_path": "/Users/anwenchebd0419/Documents/New project 2/prai2026-paper/data/otpfloodguard_simulated_windows.csv"
+  "data_path": "data/otpfloodguard_simulated_windows.csv"
 }

@@ -39,15 +39,34 @@ from sklearn.preprocessing import StandardScaler
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
 RESULTS_DIR = ROOT / "results"
+QUICK_RESULTS_DIR = RESULTS_DIR / "quick"
 FIGURES_DIR = ROOT / "figures"
 RANDOM_SEED = 42
 EVALUATION_SEEDS = [3, 7, 13, 21, 42, 99, 123]
 GENERATOR_SENSITIVITY_SEEDS = [11, 23, 42, 67, 101]
+PRIMARY_DIAGNOSTIC_MODEL = "Random Forest"
+PRIMARY_DIAGNOSTIC_FEATURE_SET = "full"
 _LEGACY_SEED_TERM = "seed"
 STALE_RESULT_FILES = [
     f"multi_{_LEGACY_SEED_TERM}_metrics.csv",
     f"multi_{_LEGACY_SEED_TERM}_summary.csv",
+    f"window_{'sensitivity'}.csv",
 ]
+STALE_FIGURE_FILES = [
+    f"window_{'sensitivity'}.png",
+]
+COUNT_FEATURES = ["window_seconds", "otp_requests", "unique_phone_count", "unique_ip_count", "unique_device_count"]
+TIMING_FEATURES = ["avg_interarrival_ms"]
+ROUNDED_MATCHING_RULE = {
+    "ratio_decimals": 3,
+    "timing_decimals": 1,
+    "count_features": "integer",
+}
+
+
+def artifact_path(path: Path) -> str:
+    """Return a repository-relative path for public JSON metadata."""
+    return path.relative_to(ROOT).as_posix()
 
 
 FEATURE_DESCRIPTIONS = {
@@ -489,6 +508,12 @@ def write_model_config(models: dict[str, object], feature_count: int, probabilit
             "default_model_score_threshold": probability_threshold,
             "score_interpretation": "model scores are empirical decision scores; probability calibration is not evaluated",
             "selection_scope": "all configurations fixed before held-out test evaluation",
+            "hyperparameter_search": "none",
+            "held_out_test_used_for_hyperparameter_selection": False,
+            "primary_diagnostic_model": PRIMARY_DIAGNOSTIC_MODEL,
+            "primary_diagnostic_feature_set": PRIMARY_DIAGNOSTIC_FEATURE_SET,
+            "primary_diagnostic_selection_basis": "fixed before held-out reporting as the main lightweight nonlinear baseline",
+            "held_out_test_used_for_primary_model_selection": False,
             "standard_scaler": "used inside Logistic Regression pipeline and fitted on training folds/splits only",
         },
         "estimators": {model_name: model.get_params(deep=True) for model_name, model in models.items()},
@@ -658,6 +683,189 @@ def write_benchmark_config(df: pd.DataFrame) -> None:
         "interpretation": "controlled benchmark prevalence, not production base rate",
     }
     (RESULTS_DIR / "benchmark_config.json").write_text(json.dumps(config, indent=2), encoding="utf-8")
+
+
+def write_generator_config(df: pd.DataFrame) -> None:
+    counts = {str(k): int(v) for k, v in df["label"].value_counts().sort_index().items()}
+    attack_counts = {str(k): int(v) for k, v in df["attack_type"].value_counts().sort_index().items()}
+    config = {
+        "primary_generator": "overlap_v1",
+        "primary_generator_seed": RANDOM_SEED,
+        "split_seed": RANDOM_SEED,
+        "sample_count": int(len(df)),
+        "class_counts": counts,
+        "attack_subtype_counts": attack_counts,
+        "window_seconds": 60,
+        "attack_type_sampling_probabilities": {
+            "normal": 0.58,
+            "flooding": 0.18,
+            "sms_pumping": 0.16,
+            "sequential_spray": 0.08,
+        },
+        "hard_window_injection": {
+            "hard_normal_fraction": 0.09,
+            "hard_attack_fraction": 0.11,
+            "purpose": "create class overlap between legitimate bursts, delivery-failure-like windows, and low-intensity attacks",
+        },
+        "difficulty_controls": {
+            "easy": "increases visible attack velocity, failure, prefix concentration, and reuse separation",
+            "overlap": "base benchmark with hard normal and hard attack windows",
+            "adaptive": "blends attack behavioral features toward sampled normal windows using 0.22 attack signal and 0.78 normal signal",
+        },
+        "attack_intensity_controls": {
+            "alpha_values": [0.2, 0.4, 0.6, 0.8, 1.0],
+            "noise_distribution": "epsilon ~ Normal(mean=1.0, sd=0.04)",
+            "interpretation": "controlled feature-space interpolation, not production severity calibration",
+        },
+        "clipping": {
+            "ratio_features": "clipped to predefined valid ranges, usually [0, 1]",
+            "count_features": "rounded to nearest integer and clipped to feature-specific lower bounds",
+        },
+        "rounding": {
+            "count_features": "nearest integer after transformations",
+            "reporting": "manuscript metrics rounded to four decimals; CSV files retain full precision",
+        },
+        "class_definitions": {
+            "normal": "ordinary, legitimate-burst, or delivery-failure-like OTP request windows",
+            "attack": "simulated OTP flooding, SMS pumping, or sequential phone-number spray windows",
+        },
+        "parameter_groups": {
+            "risk_signal_directions": {"source_type": "public_directional_evidence"},
+            "attack_type_probabilities": {"source_type": "benchmark_design_choice"},
+            "hard_window_fractions": {"source_type": "benchmark_design_choice"},
+            "difficulty_multipliers": {"source_type": "benchmark_design_choice"},
+            "derived_ratio_rules": {"source_type": "derived_feature_rule"},
+        },
+        "parameter_freeze_statement": "Generator controls are defined in the experiment script before reproduction; final held-out reporting must be regenerated from this source before submission.",
+        "parameter_provenance": "simulation controls chosen to create inspectable Easy, Overlap, Adaptive, attack-intensity, and generator-shift stress regimes; not production distribution estimates",
+    }
+    (RESULTS_DIR / "generator_config.json").write_text(json.dumps(config, indent=2), encoding="utf-8")
+
+
+def rounded_feature_frame(df: pd.DataFrame, feature_cols: list[str]) -> pd.DataFrame:
+    rounded = df[feature_cols].copy()
+    for col in feature_cols:
+        if col in COUNT_FEATURES:
+            rounded[col] = rounded[col].round().astype(int)
+        elif col in TIMING_FEATURES:
+            rounded[col] = rounded[col].round(ROUNDED_MATCHING_RULE["timing_decimals"])
+        else:
+            rounded[col] = rounded[col].round(ROUNDED_MATCHING_RULE["ratio_decimals"])
+    return rounded
+
+
+def count_cross_label_duplicates(frame: pd.DataFrame, label: pd.Series) -> int:
+    joined = frame.copy()
+    joined["_label"] = label.to_numpy()
+    label_counts = joined.groupby(list(frame.columns))["_label"].nunique()
+    return int((label_counts > 1).sum())
+
+
+def count_train_test_overlap(train_frame: pd.DataFrame, test_frame: pd.DataFrame) -> int:
+    train_keys = set(map(tuple, train_frame.to_numpy()))
+    test_keys = set(map(tuple, test_frame.to_numpy()))
+    return len(train_keys & test_keys)
+
+
+def write_duplicate_audit(df: pd.DataFrame, feature_cols: list[str], train_idx, test_idx) -> None:
+    feature_frame = df[feature_cols]
+    train_features = feature_frame.loc[train_idx]
+    test_features = feature_frame.loc[test_idx]
+    rounded = rounded_feature_frame(df, feature_cols)
+    rounded_train = rounded.loc[train_idx]
+    rounded_test = rounded.loc[test_idx]
+    exact_overlap = count_train_test_overlap(train_features, test_features)
+    rounded_overlap = count_train_test_overlap(rounded_train, rounded_test)
+    test_rows = int(len(test_features))
+    duplicate_rows = int(df.duplicated(subset=feature_cols + ["attack_type", "label"]).sum())
+    feature_duplicate_rows = int(df.duplicated(subset=feature_cols).sum())
+    audit = {
+        "exact_duplicate_rows_total": int(df.duplicated().sum()),
+        "duplicate_rows_including_label_and_attack_type": duplicate_rows,
+        "exact_duplicate_feature_vectors_total": feature_duplicate_rows,
+        "duplicate_rows_excluding_label": int(df.duplicated(subset=feature_cols + ["attack_type"]).sum()),
+        "cross_label_exact_duplicate_count": count_cross_label_duplicates(feature_frame, df["label"]),
+        "train_test_overlap_matching_key": "model_input_feature_vector_only",
+        "train_test_overlap_excludes": [
+            "row_id",
+            "DataFrame index",
+            "label",
+            "attack_type",
+            "train_test_indicator",
+        ],
+        "train_test_exact_feature_overlap_count": exact_overlap,
+        "train_test_exact_feature_overlap_rate": exact_overlap / test_rows if test_rows else 0.0,
+        "rounded_matching_rule": ROUNDED_MATCHING_RULE,
+        "train_test_rounded_overlap_count": rounded_overlap,
+        "train_test_rounded_overlap_rate": rounded_overlap / test_rows if test_rows else 0.0,
+        "interpretation": "diagnostic only; not proof that all near-duplicate leakage is absent",
+    }
+    (RESULTS_DIR / "duplicate_audit.json").write_text(json.dumps(audit, indent=2), encoding="utf-8")
+    csv_row = {k: v for k, v in audit.items() if k != "rounded_matching_rule"}
+    pd.DataFrame([csv_row]).to_csv(RESULTS_DIR / "duplicate_audit.csv", index=False)
+
+
+def write_complement_identity_sanity(df: pd.DataFrame) -> None:
+    diff = (df["success_rate"] + df["failure_rate"] - 1.0).abs()
+    pd.DataFrame(
+        [
+            {
+                "feature_pair": "success_rate_plus_failure_rate",
+                "expected_sum": 1.0,
+                "max_absolute_error": float(diff.max()),
+                "mean_absolute_error": float(diff.mean()),
+                "passes_tolerance_1e_9": bool(diff.max() <= 1e-9),
+                "interpretation": "deterministic complement sanity check for generated outcome features",
+            }
+        ]
+    ).to_csv(RESULTS_DIR / "complement_identity_sanity.csv", index=False)
+
+
+def run_complement_feature_sanity(X_train, X_test, y_train, y_test, feature_cols: list[str]) -> pd.DataFrame:
+    rows = []
+    settings = [
+        ("full", None, feature_cols),
+        ("remove_success_rate", "success_rate", [f for f in feature_cols if f != "success_rate"]),
+        ("remove_failure_rate", "failure_rate", [f for f in feature_cols if f != "failure_rate"]),
+    ]
+    full_f1 = None
+    for feature_setting, removed_feature, features in settings:
+        model = RandomForestClassifier(
+            n_estimators=250,
+            max_depth=10,
+            min_samples_leaf=3,
+            random_state=RANDOM_SEED,
+            n_jobs=-1,
+        )
+        result = evaluate_model("Random Forest", model, X_train, X_test, y_train, y_test, features)
+        if feature_setting == "full":
+            full_f1 = float(result["f1"])
+        rows.append(
+            {
+                "feature_setting": feature_setting,
+                "removed_feature": removed_feature or "",
+                "precision": result["precision"],
+                "recall": result["recall"],
+                "f1": result["f1"],
+                "roc_auc": result["roc_auc"],
+                "pr_auc": result["pr_auc"],
+                "difference_from_full_f1": 0.0 if full_f1 is None else float(result["f1"]) - full_f1,
+                "generator_seed": RANDOM_SEED,
+                "split_seed": RANDOM_SEED,
+                "model": "Random Forest",
+            }
+        )
+    out = pd.DataFrame(rows)
+    out.to_csv(RESULTS_DIR / "complement_feature_sanity.csv", index=False)
+    summary = {
+        "model": "Random Forest",
+        "generator_seed": RANDOM_SEED,
+        "split_seed": RANDOM_SEED,
+        "settings": rows,
+        "interpretation": "performance sanity check for deterministic complement outcome features; same split and model configuration across settings",
+    }
+    (RESULTS_DIR / "complement_feature_sanity.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    return out
 
 
 def run_multi_split_evaluation(df: pd.DataFrame, feature_cols: list[str]) -> pd.DataFrame:
@@ -947,6 +1155,27 @@ def run_error_analysis(test_df: pd.DataFrame, y_true: pd.Series, y_pred: np.ndar
     pd.DataFrame(representative_rows).to_csv(RESULTS_DIR / "representative_error_cases.csv", index=False)
 
 
+def write_attack_subtype_recall(test_df: pd.DataFrame, y_pred: np.ndarray, model_name: str) -> None:
+    analyzed = test_df.copy()
+    analyzed["predicted_label"] = y_pred
+    attack_rows = analyzed[analyzed["label"] == 1]
+    rows = []
+    for attack_type, group in attack_rows.groupby("attack_type"):
+        positives = int(len(group))
+        true_positives = int((group["predicted_label"] == 1).sum())
+        rows.append(
+            {
+                "model": model_name,
+                "attack_type": attack_type,
+                "attack_windows": positives,
+                "true_positives": true_positives,
+                "recall": true_positives / positives if positives else float("nan"),
+                "selection_scope": "held-out test reporting only; not used for model or threshold selection",
+            }
+        )
+    pd.DataFrame(rows).sort_values("attack_type").to_csv(RESULTS_DIR / "attack_subtype_recall.csv", index=False)
+
+
 def out_of_fold_scores(model, X_train: pd.DataFrame, y_train: pd.Series, features: list[str]) -> np.ndarray:
     splitter = StratifiedKFold(n_splits=5, shuffle=True, random_state=RANDOM_SEED)
     oof_scores = np.zeros(len(y_train), dtype=float)
@@ -1210,6 +1439,8 @@ def run_cross_generator_evaluation(
         "training_generator": "overlap_v1",
         "training_generator_seed": RANDOM_SEED,
         "training_split_seed": RANDOM_SEED,
+        "generator_seed": RANDOM_SEED,
+        "split_seed": RANDOM_SEED,
         "shifted_generator": "shifted_v2",
         "shift_seed": RANDOM_SEED + 707,
         "shifted_generator_seed": RANDOM_SEED + 707,
@@ -1218,6 +1449,9 @@ def run_cross_generator_evaluation(
         "attack_subtype_counts": {str(k): int(v) for k, v in shifted["attack_type"].value_counts().sort_index().items()},
         "shifted_data_construction": "held-out test rows transformed under shifted feature generator",
         "label_preserving_transformation": True,
+        "uses_ground_truth_labels_for_shift_construction": True,
+        "labels_available_to_detector": False,
+        "interpretation": "controlled label-preserving stress test of simulation-assumption sensitivity, not an observed production distribution shift",
         "transformed_feature_groups": [
             "benign burst ambiguity",
             "attack request intensity",
@@ -1225,6 +1459,11 @@ def run_cross_generator_evaluation(
             "timing and multiplicative feature noise",
         ],
         "training_rows_used_in_shifted_test": False,
+        "model_refit": False,
+        "scaler_refit": False,
+        "feature_selection_refit": False,
+        "model_threshold_retuning": False,
+        "rule_threshold_retuning": False,
         "model_refit_on_shifted_data": False,
         "scaler_refit_on_shifted_data": False,
         "feature_reranking_on_shifted_data": False,
@@ -1327,23 +1566,25 @@ def write_sanity_checks(df: pd.DataFrame, feature_cols: list[str]) -> None:
     sample = df.sample(n=min(2500, len(df)), random_state=RANDOM_SEED)
 
     plt.figure(figsize=(5.8, 4.35))
-    for label_value, label_name, color in [
-        (0, "Normal windows", "#2B6CB0"),
-        (1, "Attack windows", "#C2410C"),
+    for label_value, label_name, color, marker in [
+        (0, "Normal windows", "#2B6CB0", "o"),
+        (1, "Attack windows", "#C2410C", "x"),
     ]:
         group = sample[sample["label"] == label_value]
         plt.scatter(
             group["request_velocity_per_sec"],
             group["failure_rate"],
             c=color,
+            marker=marker,
             label=label_name,
-            alpha=0.30,
-            s=13,
-            edgecolors="none",
+            alpha=0.34,
+            s=16 if marker == "o" else 18,
+            linewidths=0.7 if marker == "x" else 0.0,
+            edgecolors="none" if marker == "o" else color,
         )
     plt.xlabel("Request velocity per second", fontsize=10)
     plt.ylabel("Failure rate", fontsize=10)
-    plt.title("Why the Benchmark Is Not Trivially Separable", fontsize=11)
+    plt.title("Class Overlap in Request-Velocity and Failure-Rate Space", fontsize=11)
     overlap = Ellipse(
         xy=(0.45, 0.55),
         width=0.55,
@@ -1388,7 +1629,7 @@ def write_sanity_checks(df: pd.DataFrame, feature_cols: list[str]) -> None:
     corr.index.name = "feature"
     corr.to_csv(RESULTS_DIR / "feature_correlation.csv")
     plt.figure(figsize=(6.6, 5.35))
-    im = plt.imshow(corr, cmap="coolwarm", vmin=-1, vmax=1)
+    im = plt.imshow(corr, cmap="RdBu_r", vmin=-1, vmax=1)
     plt.colorbar(im, fraction=0.046, pad=0.04)
     plt.xticks(range(len(corr_features)), corr_features, rotation=42, ha="right", fontsize=8)
     plt.yticks(range(len(corr_features)), corr_features, fontsize=8)
@@ -1578,6 +1819,7 @@ def run_quick_mode() -> None:
     """Run a fast seed-42 quick verification without overwriting full-result tables."""
     DATA_DIR.mkdir(exist_ok=True)
     RESULTS_DIR.mkdir(exist_ok=True)
+    QUICK_RESULTS_DIR.mkdir(exist_ok=True)
 
     df = build_dataset()
     feature_cols = [c for c in df.columns if c not in {"attack_type", "label"}]
@@ -1622,7 +1864,7 @@ def run_quick_mode() -> None:
     rows.append(prediction_metrics("Velocity+Failure Rule", "velocity_failure_rules", 2, y_test, vf_pred))
 
     quick_metrics = pd.DataFrame(rows).sort_values(["f1", "recall", "precision"], ascending=False)
-    quick_metrics.to_csv(RESULTS_DIR / "quick_metrics.csv", index=False)
+    quick_metrics.to_csv(QUICK_RESULTS_DIR / "quick_metrics.csv", index=False)
     summary = {
         "mode": "quick",
         "note": "Fast seed-42 quick verification; full paper tables require running without --quick.",
@@ -1630,9 +1872,9 @@ def run_quick_mode() -> None:
         "features": len(feature_cols),
         "best_model": str(quick_metrics.iloc[0]["model"]),
         "best_f1": float(quick_metrics.iloc[0]["f1"]),
-        "output": str(RESULTS_DIR / "quick_metrics.csv"),
+        "output": artifact_path(QUICK_RESULTS_DIR / "quick_metrics.csv"),
     }
-    (RESULTS_DIR / "quick_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    (QUICK_RESULTS_DIR / "quick_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     print(json.dumps(summary, indent=2))
 
 
@@ -1642,6 +1884,10 @@ def main() -> None:
     FIGURES_DIR.mkdir(exist_ok=True)
     for stale_name in STALE_RESULT_FILES:
         stale_path = RESULTS_DIR / stale_name
+        if stale_path.exists():
+            stale_path.unlink()
+    for stale_name in STALE_FIGURE_FILES:
+        stale_path = FIGURES_DIR / stale_name
         if stale_path.exists():
             stale_path.unlink()
     write_environment_config()
@@ -1654,6 +1900,7 @@ def main() -> None:
     feature_cols = [c for c in df.columns if c not in {"attack_type", "label"}]
     write_feature_dictionary(df, feature_cols)
     write_benchmark_config(df)
+    write_generator_config(df)
 
     train_idx, test_idx = train_test_split(
         df.index,
@@ -1665,6 +1912,8 @@ def main() -> None:
     X_test = df.loc[test_idx, feature_cols]
     y_train = df.loc[train_idx, "label"]
     y_test = df.loc[test_idx, "label"]
+    write_duplicate_audit(df, feature_cols, train_idx, test_idx)
+    write_complement_identity_sanity(df)
 
     selector = RandomForestClassifier(
         n_estimators=250,
@@ -1726,20 +1975,26 @@ def main() -> None:
     metrics = pd.DataFrame(rows).sort_values(["f1", "recall", "precision"], ascending=False)
     metrics.to_csv(RESULTS_DIR / "metrics.csv", index=False)
 
-    best = metrics.iloc[0]
-    best_features = feature_sets[str(best["feature_set"])]
-    best_model = models[str(best["model"])]
-    best_model.fit(X_train[best_features], y_train)
-    y_pred = best_model.predict(X_test[best_features])
-    y_score = model_scores(best_model, X_test[best_features])
+    primary_features = feature_sets[PRIMARY_DIAGNOSTIC_FEATURE_SET]
+    primary_model = models[PRIMARY_DIAGNOSTIC_MODEL]
+    primary_row = metrics[
+        (metrics["model"] == PRIMARY_DIAGNOSTIC_MODEL)
+        & (metrics["feature_set"] == PRIMARY_DIAGNOSTIC_FEATURE_SET)
+    ].iloc[0]
+    top_test_row = metrics.iloc[0]
+    primary_model.fit(X_train[primary_features], y_train)
+    y_pred = primary_model.predict(X_test[primary_features])
+    y_score = model_scores(primary_model, X_test[primary_features])
     if y_score is not None:
-        oof_score = out_of_fold_scores(best_model, X_train, y_train, best_features)
+        oof_score = out_of_fold_scores(primary_model, X_train, y_train, primary_features)
         write_curve_and_threshold_outputs(y_test, y_score, y_train, oof_score)
-        prevalence_sensitivity = write_prevalence_sensitivity(str(best["model"]), y_test, y_score, float(df["label"].mean()))
+        prevalence_sensitivity = write_prevalence_sensitivity(PRIMARY_DIAGNOSTIC_MODEL, y_test, y_score, float(df["label"].mean()))
     else:
         prevalence_sensitivity = pd.DataFrame()
-    permutation = run_permutation_importance_cv(best_model, X_train, y_train, best_features)
+    permutation = run_permutation_importance_cv(primary_model, X_train, y_train, primary_features)
     run_error_analysis(df.loc[test_idx].copy(), y_test, y_pred, feature_cols)
+    write_attack_subtype_recall(df.loc[test_idx].copy(), y_pred, PRIMARY_DIAGNOSTIC_MODEL)
+    complement_sanity = run_complement_feature_sanity(X_train, X_test, y_train, y_test, feature_cols)
     ablation = run_ablation_study(X_train, X_test, y_train, y_test, feature_cols)
     seed_metrics = run_multi_split_evaluation(df, feature_cols)
     generator_seed_metrics = run_generator_seed_sensitivity(
@@ -1754,7 +2009,7 @@ def main() -> None:
     cm = confusion_matrix(y_test, y_pred)
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["normal", "attack"])
     disp.plot(cmap="Blues", values_format="d")
-    plt.title(f"Confusion Matrix: {best['model']} ({best['feature_set']})")
+    plt.title(f"Confusion Matrix: {PRIMARY_DIAGNOSTIC_MODEL} ({PRIMARY_DIAGNOSTIC_FEATURE_SET})")
     plt.tight_layout()
     plt.savefig(FIGURES_DIR / "confusion_matrix_best_model.png", dpi=200)
     plt.close()
@@ -1768,52 +2023,6 @@ def main() -> None:
     plt.savefig(FIGURES_DIR / "top10_feature_importance.png", dpi=200)
     plt.close()
 
-    sensitivity_rows = []
-    for window_seconds in [30, 60, 120]:
-        window_df = make_window_variant(df, window_seconds, RANDOM_SEED)
-        window_feature_cols = [c for c in window_df.columns if c not in {"attack_type", "label"}]
-        window_X_train, window_X_test, window_y_train, window_y_test = train_test_split(
-            window_df[window_feature_cols],
-            window_df["label"],
-            test_size=0.2,
-            random_state=RANDOM_SEED,
-            stratify=window_df["label"],
-        )
-        window_model = RandomForestClassifier(
-            n_estimators=250,
-            max_depth=10,
-            min_samples_leaf=3,
-            random_state=RANDOM_SEED,
-            n_jobs=-1,
-        )
-        result = evaluate_model(
-            "Random Forest",
-            window_model,
-            window_X_train,
-            window_X_test,
-            window_y_train,
-            window_y_test,
-            window_feature_cols,
-        )
-        result["window_seconds"] = window_seconds
-        sensitivity_rows.append(result)
-
-    sensitivity = pd.DataFrame(sensitivity_rows)
-    sensitivity.to_csv(RESULTS_DIR / "window_sensitivity.csv", index=False)
-
-    plt.figure(figsize=(6, 4))
-    plt.plot(sensitivity["window_seconds"], sensitivity["f1"], marker="o", label="F1-score")
-    plt.plot(sensitivity["window_seconds"], sensitivity["recall"], marker="s", label="Recall")
-    plt.xlabel("Window length (seconds)")
-    plt.ylabel("Score")
-    plt.title("Window Sensitivity of Random Forest")
-    plt.ylim(0.90, 1.00)
-    plt.grid(True, alpha=0.25)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(FIGURES_DIR / "window_sensitivity.png", dpi=200)
-    plt.close()
-
     rf_seed_metrics = seed_metrics[seed_metrics["model"] == "Random Forest"]
     rf_generator_seed_metrics = generator_seed_metrics[generator_seed_metrics["model"] == "Random Forest"]
     summary = {
@@ -1825,12 +2034,16 @@ def main() -> None:
         "attack_rate": float(df["label"].mean()),
         "normal_windows": int((df["label"] == 0).sum()),
         "attack_windows": int((df["label"] == 1).sum()),
-        "best_model": str(best["model"]),
-        "best_feature_set": str(best["feature_set"]),
-        "best_f1": float(best["f1"]),
-        "best_recall": float(best["recall"]),
-        "best_roc_auc": float(best["roc_auc"]),
-        "best_pr_auc": float(best["pr_auc"]),
+        "primary_diagnostic_model": PRIMARY_DIAGNOSTIC_MODEL,
+        "primary_diagnostic_feature_set": PRIMARY_DIAGNOSTIC_FEATURE_SET,
+        "primary_diagnostic_selection_basis": "fixed before held-out reporting as the main lightweight nonlinear baseline",
+        "held_out_test_used_for_primary_model_selection": False,
+        "test_sorted_top_model": str(top_test_row["model"]),
+        "test_sorted_top_feature_set": str(top_test_row["feature_set"]),
+        "primary_f1": float(primary_row["f1"]),
+        "primary_recall": float(primary_row["recall"]),
+        "primary_roc_auc": float(primary_row["roc_auc"]),
+        "primary_pr_auc": float(primary_row["pr_auc"]),
         "rule_baseline_f1": float(metrics.loc[metrics["model"] == "Tuned Rule Baseline", "f1"].iloc[0]),
         "velocity_failure_rule_f1": float(metrics.loc[metrics["model"] == "Velocity+Failure Rule", "f1"].iloc[0]),
         "multi_split_f1_mean": float(rf_seed_metrics["f1"].mean()),
@@ -1845,7 +2058,9 @@ def main() -> None:
         "cross_generator_rf_recall": float(cross_generator_metrics[cross_generator_metrics["model"] == "Random Forest"]["recall"].iloc[0]),
         "top_permutation_feature": str(permutation.iloc[0]["feature"]),
         "prevalence_sensitivity_rows": int(len(prevalence_sensitivity)),
-        "data_path": str(data_path),
+        "complement_feature_sanity_rows": int(len(complement_sanity)),
+        "data_path": artifact_path(data_path),
+        "pending_legacy_artifacts": STALE_RESULT_FILES + [f"figures/{name}" for name in STALE_FIGURE_FILES],
     }
     (RESULTS_DIR / "experiment_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     print(json.dumps(summary, indent=2))

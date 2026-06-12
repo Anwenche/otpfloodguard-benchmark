@@ -1,0 +1,47 @@
+{
+  "model": "Random Forest",
+  "generator_seed": 42,
+  "split_seed": 42,
+  "settings": [
+    {
+      "feature_setting": "full",
+      "removed_feature": "",
+      "precision": 0.9468599033816425,
+      "recall": 0.9770687936191426,
+      "f1": 0.9617271835132483,
+      "roc_auc": 0.9942370454848769,
+      "pr_auc": 0.9913119033048637,
+      "difference_from_full_f1": 0.0,
+      "generator_seed": 42,
+      "split_seed": 42,
+      "model": "Random Forest"
+    },
+    {
+      "feature_setting": "remove_success_rate",
+      "removed_feature": "success_rate",
+      "precision": 0.9460500963391136,
+      "recall": 0.9790628115653041,
+      "f1": 0.9622733953944145,
+      "roc_auc": 0.9947137827747965,
+      "pr_auc": 0.9921190909987218,
+      "difference_from_full_f1": 0.0005462118811662142,
+      "generator_seed": 42,
+      "split_seed": 42,
+      "model": "Random Forest"
+    },
+    {
+      "feature_setting": "remove_failure_rate",
+      "removed_feature": "failure_rate",
+      "precision": 0.9488910318225651,
+      "recall": 0.9810568295114656,
+      "f1": 0.9647058823529412,
+      "roc_auc": 0.9945160938087669,
+      "pr_auc": 0.9917024323758801,
+      "difference_from_full_f1": 0.002978698839692928,
+      "generator_seed": 42,
+      "split_seed": 42,
+      "model": "Random Forest"
+    }
+  ],
+  "interpretation": "performance sanity check for deterministic complement outcome features; same split and model configuration across settings"
+}

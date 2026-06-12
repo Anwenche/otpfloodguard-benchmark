@@ -1,0 +1,4 @@
+model,attack_type,attack_windows,true_positives,recall,selection_scope
+Random Forest,flooding,446,433,0.9708520179372198,held-out test reporting only; not used for model or threshold selection
+Random Forest,sequential_spray,180,177,0.9833333333333333,held-out test reporting only; not used for model or threshold selection
+Random Forest,sms_pumping,377,370,0.9814323607427056,held-out test reporting only; not used for model or threshold selection

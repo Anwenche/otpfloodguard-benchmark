@@ -6,3 +6,13 @@ __pycache__/
 .venv/
 venv/
 *.zip
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+build/
+audit/

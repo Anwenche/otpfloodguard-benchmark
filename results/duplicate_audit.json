@@ -1,0 +1,25 @@
+{
+  "exact_duplicate_rows_total": 0,
+  "duplicate_rows_including_label_and_attack_type": 0,
+  "exact_duplicate_feature_vectors_total": 0,
+  "duplicate_rows_excluding_label": 0,
+  "cross_label_exact_duplicate_count": 0,
+  "train_test_overlap_matching_key": "model_input_feature_vector_only",
+  "train_test_overlap_excludes": [
+    "row_id",
+    "DataFrame index",
+    "label",
+    "attack_type",
+    "train_test_indicator"
+  ],
+  "train_test_exact_feature_overlap_count": 0,
+  "train_test_exact_feature_overlap_rate": 0.0,
+  "rounded_matching_rule": {
+    "ratio_decimals": 3,
+    "timing_decimals": 1,
+    "count_features": "integer"
+  },
+  "train_test_rounded_overlap_count": 0,
+  "train_test_rounded_overlap_rate": 0.0,
+  "interpretation": "diagnostic only; not proof that all near-duplicate leakage is absent"
+}

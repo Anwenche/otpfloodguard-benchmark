@@ -1,0 +1,34 @@
+{
+  "primary_generator": "overlap_v1",
+  "primary_generator_seed": 42,
+  "sample_count": 12000,
+  "window_seconds": 60,
+  "attack_type_sampling_probabilities": {
+    "normal": 0.58,
+    "flooding": 0.18,
+    "sms_pumping": 0.16,
+    "sequential_spray": 0.08
+  },
+  "hard_window_injection": {
+    "hard_normal_fraction": 0.09,
+    "hard_attack_fraction": 0.11,
+    "purpose": "create class overlap between legitimate bursts, delivery-failure-like windows, and low-intensity attacks"
+  },
+  "difficulty_controls": {
+    "easy": "increases visible attack velocity, failure, prefix concentration, and reuse separation",
+    "overlap": "base benchmark with hard normal and hard attack windows",
+    "adaptive": "blends attack behavioral features toward sampled normal windows using 0.22 attack signal and 0.78 normal signal"
+  },
+  "attack_intensity_controls": {
+    "alpha_values": [
+      0.2,
+      0.4,
+      0.6,
+      0.8,
+      1.0
+    ],
+    "noise_distribution": "epsilon ~ Normal(mean=1.0, sd=0.04)",
+    "interpretation": "controlled feature-space interpolation, not production severity calibration"
+  },
+  "parameter_provenance": "simulation controls chosen to create inspectable Easy, Overlap, Adaptive, attack-intensity, and generator-shift stress regimes; not production distribution estimates"
+}

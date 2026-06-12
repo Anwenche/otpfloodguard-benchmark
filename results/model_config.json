@@ -4,6 +4,12 @@
     "default_model_score_threshold": 0.5,
     "score_interpretation": "model scores are empirical decision scores; probability calibration is not evaluated",
     "selection_scope": "all configurations fixed before held-out test evaluation",
+    "hyperparameter_search": "none",
+    "held_out_test_used_for_hyperparameter_selection": false,
+    "primary_diagnostic_model": "Random Forest",
+    "primary_diagnostic_feature_set": "full",
+    "primary_diagnostic_selection_basis": "fixed before held-out reporting as the main lightweight nonlinear baseline",
+    "held_out_test_used_for_primary_model_selection": false,
     "standard_scaler": "used inside Logistic Regression pipeline and fitted on training folds/splits only"
   },
   "estimators": {
