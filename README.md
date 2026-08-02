@@ -4,7 +4,8 @@ This repository contains the code and generated files used for the paper:
 
 **OTPFloodGuard: A Public-Evidence-Constrained Benchmark for Lightweight OTP Flooding Detection**
 
-Authors: Wenche An and Kamran Aziz
+Authors: Wenche An and Kamran Aziz  
+Corresponding author: Kamran Aziz
 
 ## What is included
 
@@ -127,9 +128,9 @@ python3 scripts/check_public_artifacts.py
 - `results/complement_identity_sanity.csv` -- identity check for success_rate + failure_rate
 - `results/quick/` -- quick-verification outputs that do not overwrite formal result tables
 
-## Pending regeneration
+## Artifact status
 
-Some result files and figures still correspond to the previous full reproduction and will be regenerated once after all source and logic revisions are complete. Legacy window-scaling artifacts are no longer part of the formal paper-facing artifact set.
+The paper-facing source, generated figures, CSV/JSON result files, and PDF correspond to the camera-ready manuscript version in this repository. Legacy window-scaling artifacts are no longer part of the formal paper-facing artifact set.
 
 ## Notes
 

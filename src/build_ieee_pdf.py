@@ -99,9 +99,8 @@ def table_spec(cols: int) -> str:
 
 def make_table(rows: list[list[str]], caption: str, wide: bool = False) -> str:
     cols = len(rows[0])
-    env = "table*" if wide else "table"
-    width = r"\textwidth" if wide else r"\columnwidth"
-    lines = [rf"\begin{{{env}}}[!t]", r"\centering", rf"\caption{{{inline_format(caption)}}}", r"\scriptsize"]
+    env = "table"
+    lines = [rf"\begin{{{env}}}[!t]", r"\centering", rf"\caption{{{inline_format(caption)}}}", r"\tiny" if cols >= 4 else r"\scriptsize"]
     lines.append(rf"\begin{{tabular}}{{{table_spec(cols)}}}")
     lines.append(r"\toprule")
     lines.append(" & ".join(r"\textbf{" + inline_format(cell) + "}" for cell in rows[0]) + r" \\")
@@ -135,11 +134,12 @@ def table_caption(rows: list[list[str]], last_heading: str, index: int) -> str:
         return "Representative error-case inspection results."
     names = {
         "Public Evidence and Benchmark Design Assumptions": "Public evidence and benchmark design assumptions.",
+        "Public Evidence and Design Assumptions": "Public evidence and benchmark design assumptions.",
         "Difficulty Levels": "Benchmark difficulty regimes.",
         "OTPFloodGuard Benchmark Card": "OTPFloodGuard benchmark card.",
         "Assumption Replaceability": "Assumption replaceability matrix.",
-        "Main Model Comparison": "Main Overlap simulated benchmark results.",
-        "Difficulty Progression": "Difficulty progression results.",
+        "Main Model Comparison": "Main results on the Overlap benchmark.",
+        "Difficulty Progression": "Difficulty-regime results.",
         "Generator-Shift Robustness": "Generator-shift robustness results.",
         "Threshold Modes and Error Analysis": "Threshold modes and error analysis results.",
     }
@@ -149,9 +149,8 @@ def table_caption(rows: list[list[str]], last_heading: str, index: int) -> str:
 def figure_latex(image_path: str, caption: str) -> str:
     cap = strip_fig_prefix(caption)
     filename = Path(image_path).name
-    is_pipeline = filename == "benchmark_pipeline.png"
-    env = "figure*" if is_pipeline else "figure"
-    width = r"0.95\textwidth" if is_pipeline else r"\columnwidth"
+    env = "figure"
+    width = r"0.82\columnwidth" if filename == "benchmark_pipeline.png" else r"0.72\columnwidth"
     return "\n".join(
         [
             rf"\begin{{{env}}}[!t]",
@@ -177,7 +176,7 @@ def reference_smart_quotes(text: str) -> str:
 
 
 def references_to_bibitems(ref_lines: list[str]) -> str:
-    items = [r"\begin{thebibliography}{00}"]
+    items = [r"\begingroup", r"\scriptsize", r"\begin{thebibliography}{00}", r"\setlength{\itemsep}{0pt}"]
     for line in ref_lines:
         match = re.match(r"\[(\d+)\]\s*(.*)", line)
         if match:
@@ -186,6 +185,7 @@ def references_to_bibitems(ref_lines: list[str]) -> str:
             body = reference_smart_quotes(body)
             items.append(rf"\bibitem{{ref{num}}} {inline_format(body)}")
     items.append(r"\end{thebibliography}")
+    items.append(r"\endgroup")
     return "\n".join(items)
 
 
@@ -256,6 +256,7 @@ def build_body(lines: list[str]) -> tuple[str, str, str]:
             rows, i = parse_table(lines, i)
             wide = len(rows[0]) >= 4 or last_heading in {
                 "Public Evidence and Benchmark Design Assumptions",
+                "Public Evidence and Design Assumptions",
                 "Difficulty Levels",
                 "OTPFloodGuard Benchmark Card",
                 "Assumption Replaceability",
@@ -328,27 +329,35 @@ def main() -> None:
 \usepackage{{url}}
 \usepackage{{microtype}}
 \usepackage[hidelinks]{{hyperref}}
+\usepackage[font=footnotesize,skip=2pt]{{caption}}
 \hypersetup{{
   pdftitle={{OTPFloodGuard: A Public-Evidence-Constrained Benchmark for Lightweight OTP Flooding Detection}},
-  pdfauthor={{Wenche An and Kamran Aziz}},
+  pdfauthor={{Wenche An and Kamran Aziz (corresponding author)}},
   pdfsubject={{A public-evidence-constrained simulated benchmark for lightweight OTP flooding detection}},
   pdfkeywords={{OTP flooding, SMS pumping, cybersecurity benchmark, simulated security data, machine learning}}
 }}
 \renewcommand{{\ttdefault}}{{cmtt}}
-\setlength{{\textfloatsep}}{{6pt plus 1pt minus 1pt}}
-\setlength{{\floatsep}}{{6pt plus 1pt minus 1pt}}
-\setlength{{\intextsep}}{{6pt plus 1pt minus 1pt}}
-\renewcommand{{\arraystretch}}{{1.08}}
+\setlength{{\textfloatsep}}{{3pt plus 1pt minus 1pt}}
+\setlength{{\floatsep}}{{3pt plus 1pt minus 1pt}}
+\setlength{{\intextsep}}{{3pt plus 1pt minus 1pt}}
+\setlength{{\abovecaptionskip}}{{2pt}}
+\setlength{{\belowcaptionskip}}{{0pt}}
+\setlength{{\tabcolsep}}{{2pt}}
+\renewcommand{{\arraystretch}}{{0.96}}
 
 \begin{{document}}
 
 \title{{OTPFloodGuard: A Public-Evidence-Constrained Benchmark for Lightweight OTP Flooding Detection}}
 
-\author{{\IEEEauthorblockN{{Wenche An$^{{1}}$, Kamran Aziz$^{{2}}$}}
-\IEEEauthorblockA{{$^{{1}}$Computer Science\\
-$^{{2}}$Digital Technologies\\
-Hainan Bielefeld University of Applied Sciences, China\\
-wenche.an.24@stu.hainan-biuh.edu.cn; kamran.aziz@hibiuh.edu.cn}}}}
+\author{{\IEEEauthorblockN{{Wenche An$^{{1}}$, Kamran Aziz$^{{2,*}}$}}
+\IEEEauthorblockA{{$^{{1}}$Department of Computer Science,\\
+Hainan Bielefeld University of Applied Sciences,\\
+Hainan, China\\
+$^{{2}}$Department of Digital Technologies,\\
+Hainan Bielefeld University of Applied Sciences,\\
+Hainan, China\\
+wenche.an.24@stu.hainan-biuh.edu.cn; kamran.aziz@hibiuh.edu.cn\\
+$^{{*}}$Corresponding author: Kamran Aziz.}}}}
 
 \maketitle
 
